@@ -25,7 +25,7 @@ def probe():
 def test_info(probe):
     info = probe.info()
     assert info.protocol == 1
-    assert info.gpio_pins == (13, 27, 28, 32)
+    assert info.gpio_pins == (11, 13, 31, 32)
 
 
 def test_ping_max_payload(probe):

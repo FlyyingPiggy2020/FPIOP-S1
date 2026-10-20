@@ -6,13 +6,13 @@
 #include "hpm_gpio_drv.h"
 #include "pins.h"
 
-/* Not GPIO: J3-8/10 target UART, J3-11/29/31 SWD (src/dap/DAP_config.h),
- * J3-7 (manual says PB15, likely PA02), J3-33 (shared with LED) and
- * J3-37 (PA30: something on the board holds it low; driving 1 reads back 0 with nothing attached). */
+/* Not GPIO: J3-8/10 target UART, J3-27/28/29 SWD (src/dap/DAP_config.h),
+ * J3-7 (manual and silkscreen say PB15, same as J3-8), J3-33 (shared with LED) and
+ * J3-37 (PA30 = USB0_PWR, J1 VBUS control: never drive it). */
 const probe_gpio_t probe_gpios[] = {
+    { 11, IOC_PAD_PA31 },
     { 13, IOC_PAD_PB11 },
-    { 27, IOC_PAD_PB12 },
-    { 28, IOC_PAD_PB13 },
+    { 31, IOC_PAD_PY01 }, /* board pull-up ("USB_OC"): reads 1 when floating */
     { 32, IOC_PAD_PA09 },
 };
 const uint8_t probe_gpio_count = sizeof(probe_gpios) / sizeof(probe_gpios[0]);

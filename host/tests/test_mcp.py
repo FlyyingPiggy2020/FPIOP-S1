@@ -43,7 +43,7 @@ def test_lists_all_tools(server):
 
 def test_probe_info(server):
     r = call(server, "probe_info")
-    assert r["ok"] and r["firmware"] == "0.2.1" and r["gpio_pins"] == [13, 27, 28, 32]
+    assert r["ok"] and r["firmware"] == "0.3.0" and r["gpio_pins"] == [11, 13, 31, 32]
     assert "elapsed_ms" in r
 
 

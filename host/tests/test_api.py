@@ -21,9 +21,9 @@ def last_payload(fake, cmd):
 
 def test_info(probe):
     info = probe.info()
-    assert info.firmware == "0.2.1"
+    assert info.firmware == "0.3.0"
     assert info.max_payload == 4096
-    assert 13 in info.gpio_pins and 11 not in info.gpio_pins
+    assert 13 in info.gpio_pins and 27 not in info.gpio_pins
 
 
 def test_ping_echo_large(probe):

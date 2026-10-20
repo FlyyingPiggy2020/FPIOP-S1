@@ -1,6 +1,6 @@
 # HPM5301 IO Probe 规格书
 
-2026-10-20 · 固件 0.2.1 · 协议 v1 · 电脑端库 ioprobe 0.2.0
+2026-10-20 · 固件 0.3.0 · 协议 v1 · 电脑端库 ioprobe 0.2.0
 
 IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收发 I2C、SPI 和 GPIO 信号，同时充当待测 MCU 的 DAPLink（SWD）调试器和串口。
 
@@ -14,12 +14,12 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | --- | --- | --- | --- | --- | --- |
 | I2C 主机 | 1 路 | I2C2 | SDA 3，SCL 5 | 速率 100 k / 400 k / 1 MHz | 已实现 |
 | SPI 主机 | 1 路，2 个片选 | SPI1 | MOSI 19，MISO 21，SCLK 23，CS0 24，CS1 26 | 模式 0–3、频率、MSB/LSB 先发、片选保持 | 已实现 |
-| GPIO | 4 个 | GPIO0 | 13，27，28，32 | 输入 / 推挽输出 / 开漏，上拉 / 下拉 / 无 | 已实现（J3-37 不可用，已去掉） |
-| DAPLink 调试器 | 1 路 SWD | FGPIO 位操作 | SWCLK 11，SWDIO 29，nRESET 31 | CMSIS-DAP v2，SWD 时钟由调试软件设置 | 已实现，未接目标板实测 |
+| GPIO | 4 个 | GPIO0 | 11，13，31，32 | 输入 / 推挽输出 / 开漏，上拉 / 下拉 / 无 | 已实现（J3-37 不可用，已去掉） |
+| DAPLink 调试器 | 1 路 SWD | FGPIO 位操作 | SWDIO 27，SWCLK 28，nRESET 29，GND 30（2×2 方块） | CMSIS-DAP v2，SWD 时钟由调试软件设置 | 已实现，未接目标板实测 |
 | 目标串口 | 1 路 | UART3 | TX 8，RX 10 | 波特率 / 数据位 / 校验 / 停止位跟随电脑端 | 已实现，待回环实测 |
 | 调试串口 | 1 路 | UART0 | TX 36，RX 38 | 115200 bps，固件日志 | 保留，不对外开放 |
-| I2C 从机模拟 | 1 路 | I2C3 | SDA 27，SCL 28 | — | 第二阶段 |
-| SPI 从机模拟 | 1 路 | SPI2 | SCLK 13，MISO 27，MOSI 28，CS 26 | — | 第二阶段（和 I2C3 二选一） |
+| I2C 从机模拟 | 复用 I2C 主机那一路 | I2C2 | SDA 3，SCL 5 | 由命令切换主/从 | 后续 |
+| SPI 从机模拟 | 复用 SPI 主机那一路 | SPI1 | 19 / 21 / 23 / 24 | 由命令切换主/从 | 后续 |
 
 **J3 引脚分配**
 
@@ -29,19 +29,19 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 2, 4 | — | 5 V 电源 | 不要接到 IO |
 | 3 / 5 | PB09 / PB08 | I2C SDA / SCL | 外接设备需要 4.7 kΩ 上拉到 3.3 V |
 | 8 / 10 | PB15 / PB14 | 目标串口 TX / RX | TX 接目标板 RX，RX 接目标板 TX |
-| 11 | PA31 | SWCLK | DAPLink |
+| 11 | PA31 | GPIO | |
 | 13 | PB11 | GPIO | |
 | 19 / 21 / 23 | PA29 / PA28 / PA27 | SPI MOSI / MISO / SCLK | |
 | 24 / 26 | PA26 / PB10 | SPI CS0 / CS1 | 低电平有效，固件用 GPIO 控制 |
-| 27, 28 | PB12, PB13 | GPIO | 第二阶段可切换为 I2C3 或 SPI2 |
-| 29 | PY00 | SWDIO | DAPLink，板上有上拉 |
-| 31 | PY01 | nRESET | DAPLink，开漏，板上有上拉 |
+| 27 / 28 | PB12 / PB13 | SWDIO / SWCLK | DAPLink，和 29、30 组成 2×2 方块 |
+| 29 | PY00 | nRESET | DAPLink，开漏；丝印 USB_ID，板上有上拉 |
+| 31 | PY01 | GPIO | 丝印 USB_OC，板上有上拉，悬空读到 1 |
 | 32 | PA09 | GPIO | |
 | 33 | PA10 | 板载 LED（心跳） | 不对外开放 |
 | 36 / 38 | PA00 / PA01 | 调试串口 TX / RX | 保留 |
-| 37 | PA30 | 不使用 | 空脚时推挽输出 1 仍读回 0，板上有东西将其拉低（0.2.1 起去掉） |
+| 37 | PA30 | 不使用 | 丝印 USB0_PWR，接 J1 的 VBUS 供电控制，不要驱动（0.2.1 起去掉） |
 | 6, 9, 14, 20, 25, 30, 34, 39 | — | GND | |
-| 7 | 待核实 | 未分配 | 手册写 PB15，多半是 PA02 |
+| 7 | 待核实 | 未分配 | 手册和丝印都写 PB15，但 J3-8 也是 PB15；需量 J3-7 与 J3-8 是否导通 |
 | 12, 15, 16, 18, 22, 35, 40 | — | 空脚（NC） | |
 
 ## 2. 整机参数
@@ -59,7 +59,8 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 调试器 | 协议 | CMSIS-DAP v2.1（固件报告 2.1.1），仅 SWD，包长 512 B × 4 | OpenOCD 0.12 实测识别 |
 | 调试器 | 支持的软件 | OpenOCD、pyOCD、probe-rs、Keil 等支持 CMSIS-DAP v2 的工具 | 协议标准 |
 | 目标串口 | 参数 | 波特率 / 数据位 7–8 / 奇偶校验 / 停止位 1–2，跟随电脑端设置；收发各 4 KB 缓冲 | 固件 |
-| 电气 | 供电 | USB Type-C 5 V | 板级说明 |
+| 电气 | 供电 | USB Type-C 5 V（≤ 5.5 V），J1 或 J2 | 用户手册 |
+| 电气 | USB 线材 | 必须插 J1；用 A-to-C 线，或在 USB-C 口加“C 转 A”转接头。C-to-C 线接 USB-C 主机口不上电、不识别（J1 缺 CC 下拉） | 实测 |
 | 电气 | IO 电平 | 3.3 V，无电平转换、无保护；不得接 5 V 信号，待测设备必须共地 | 芯片规格 |
 | 协议 | 帧格式 | SOF(0xA5) · cmd · seq · len(16 位) · payload · CRC-16/CCITT-FALSE | src/protocol.h |
 | 协议 | 单帧容量 | 请求数据 ≤ 4096 字节；回复数据 ≤ 4095 字节（另有 1 字节状态码） | 实测 |
@@ -67,7 +68,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 性能 | 大数据往返 | 4000 字节回显约 10 ms | 实测（0.1.0） |
 | 性能 | I2C 全地址扫描 | 约 105 ms（0x08–0x77，空总线） | 实测 |
 | 性能 | 复位后重新可用 | 约 1 s（USB 重新枚举） | 实测（0.1.0） |
-| 版本 | 固件 / 协议 / 电脑端库 | 0.2.1 / v1 / ioprobe 0.2.0 | 代码 |
+| 版本 | 固件 / 协议 / 电脑端库 | 0.3.0 / v1 / ioprobe 0.2.0 | 代码 |
 
 待确认：主频、SPI 最高 SCLK、SWD 实际时钟、整机功耗和尺寸尚未实测；SPI 和目标串口的数据还未用回环线验证，SWD 还未接目标板验证。
 
@@ -80,7 +81,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 组件 | 型号 / 位号 | 关键参数 | 在 IO Probe 中的用途 |
 | --- | --- | --- | --- |
 | 主控 MCU | HPM5301（U4） | RISC-V；4×I2C、4×SPI（主/从）；片内 USB 2.0 高速 PHY | 协议处理，驱动全部 IO |
-| USB 接口 | Type-C（J1 / J2） | USB 2.0 高速设备 | 供电 + 与电脑通信 |
+| USB 接口 | Type-C J1（USB0）；Type-C J2（仅供电） | USB 2.0 高速设备；两个口都缺 CC 下拉电阻 | J1：供电 + 与电脑通信；J2：只供电 |
 | 扩展排针 | J3，2×20，2.54 mm | 树莓派兼容排列 | 引出 I2C / SPI / GPIO / SWD / 目标串口 |
 | 调试接口 | J5，标准 20 针 JTAG | J-Link 等调试器 | 烧录、调试 IO Probe 自身固件（`flash.sh`） |
 | 按键 | SW1 RESET；SW2 KEY&BOOT | 按住 KEY 再复位进入 ISP | 复位 / 进入烧录模式 |
@@ -92,7 +93,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | --- | --- | --- | --- |
 | USB 链路 | usb_link.c | 复合设备描述符（DAP + 2×CDC + WinUSB），IO Probe 控制口收发（CherryUSB） | 接收环形缓冲 8 KB，缓冲满时自动流控；发送缓冲 4352 B |
 | DAP 传输 | dap_link.c | CMSIS-DAP v2 bulk 请求/回复队列 | 512 B × 4 包 |
-| DAP 配置 | dap/DAP_config.h | SWD 引脚、时序、仅 SWD | FGPIO 位操作，默认 1 MHz |
+| DAP 配置 | dap/DAP_config.h | SWD 引脚（J3-27/28/29）、时序、仅 SWD | FGPIO 位操作，默认 1 MHz |
 | DAP 核心 | third_party/cherrydap | CMSIS-DAP 命令处理、SWD 时序（ARM / CherryDAP，Apache-2.0） | 固定在 CherryDAP 43d2b4c |
 | 目标串口 | target_uart.c | CDC #2 ↔ UART3 转发 | 中断接收 + 轮询发送，各 4 KB 缓冲 |
 | 协议 | protocol.c | 帧解析、CRC 校验、命令分发 | 遇到乱码自动重新同步到下一个 0xA5 |
@@ -189,7 +190,7 @@ MCP server 和命令行都只是 ioprobe 库的外壳，因此 AI、脚本和人
 
 | 功能 | 电脑上看到的 | 接线（J3） | 典型用法 |
 | --- | --- | --- | --- |
-| DAPLink（SWD） | CMSIS-DAP v2 调试器 | SWCLK 11，SWDIO 29，nRESET 31，GND | OpenOCD / pyOCD / probe-rs 给 3.3 V ARM Cortex-M 烧录、调试 |
+| DAPLink（SWD） | CMSIS-DAP v2 调试器 | SWDIO 27，SWCLK 28，nRESET 29，GND 30 | OpenOCD / pyOCD / probe-rs 给 3.3 V ARM Cortex-M 烧录、调试 |
 | 目标串口 | 第二个 USB 串口（第一个是 IO Probe 控制口） | TX 8 → 目标 RX，RX 10 ← 目标 TX，GND | 看目标板日志、和目标固件交互 |
 
 合起来就是一个完整的闭环：AI 用 DAPLink 烧录待测固件，用目标串口看它的输出，用 I2C / SPI / GPIO 给它激励并观察响应。三个功能在固件主循环里轮流处理，互不阻塞。

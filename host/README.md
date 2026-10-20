@@ -9,7 +9,7 @@
 |---|---|---|
 | IO Probe 控制 | 第一个串口（macOS 上是 `/dev/cu.usbmodemIOPROBE_00012`） | 本库、命令行、MCP server，`find_probe()` 自动找到 |
 | 目标串口 | 第二个串口（`…00014`），转发 J3-8 TX / J3-10 RX | 任何串口工具；`find_target_uart()` 返回它的路径 |
-| DAPLink 调试器 | CMSIS-DAP v2（VID:PID 34B7:5301） | OpenOCD / pyOCD / probe-rs / Keil，SWD 接 J3-11/29/31 |
+| DAPLink 调试器 | CMSIS-DAP v2（VID:PID 34B7:5301） | OpenOCD / pyOCD / probe-rs / Keil，SWD 接 J3-27/28/29/30 |
 
 ## 安装
 
@@ -80,7 +80,7 @@ Python 路径默认是本机的 `host/.venv/bin/python`。别人使用时可以�
 
 ## DAPLink（SWD 调试器）
 
-接线：J3-11 SWCLK、J3-29 SWDIO、J3-31 nRESET、GND，目标板必须是 3.3 V。以 STM32F1 为例，用 OpenOCD 读芯片：
+接线：J3-27 SWDIO、J3-28 SWCLK、J3-29 nRESET、J3-30 GND，四个脚在排针上是一个 2×2 方块。目标板必须是 3.3 V。以 STM32F1 为例，用 OpenOCD 读芯片：
 
 ```bash
 openocd -f interface/cmsis-dap.cfg -c "cmsis_dap_backend usb_bulk" -c "transport select swd" -f target/stm32f1x.cfg

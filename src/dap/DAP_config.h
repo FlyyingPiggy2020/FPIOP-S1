@@ -2,10 +2,9 @@
  * CMSIS-DAP configuration for IO Probe on HPM5301EVKLite.
  * Based on the ARM template (third_party/cherrydap) and CherryDAP's HSLink-Lite config.
  *
- * SWD only, GPIO bit-bang on J3 header pins (see docs/pinout.md):
- *   SWCLK  = J3-11 PA31 (push-pull)
- *   SWDIO  = J3-29 PY00 (bidirectional, board pull-up)
- *   nRESET = J3-31 PY01 (open-drain emulated, board pull-up)
+ * SWD only, GPIO bit-bang on J3 header pins, grouped as a 2x2 block with GND (see docs/pinout.md):
+ *   SWDIO  = J3-27 PB12 (bidirectional)      SWCLK = J3-28 PB13 (push-pull)
+ *   nRESET = J3-29 PY00 (open-drain emulated, board pull-up "USB_ID")      GND = J3-30
  * Pins are driven through the core-local fast GPIO (FGPIO) for speed.
  */
 #ifndef __DAP_CONFIG_H__
@@ -59,9 +58,9 @@
 
 #define TARGET_FIXED 0
 
-#define PIN_SWCLK  IOC_PAD_PA31
-#define PIN_SWDIO  IOC_PAD_PY00
-#define PIN_nRESET IOC_PAD_PY01
+#define PIN_SWCLK  IOC_PAD_PB13
+#define PIN_SWDIO  IOC_PAD_PB12
+#define PIN_nRESET IOC_PAD_PY00
 #define PIN_GPIO   HPM_FGPIO
 
 #define PIN_PORT(pad) GPIO_GET_PORT_INDEX(pad)
