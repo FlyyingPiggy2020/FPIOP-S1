@@ -2,10 +2,12 @@
  * CMSIS-DAP configuration for IO Probe on HPM5301EVKLite.
  * Based on the ARM template (third_party/cherrydap) and CherryDAP's HSLink-Lite config.
  *
- * SWD only, GPIO bit-bang on J3 header pins, grouped as a 2x2 block with GND (see docs/pinout.md):
- *   SWDIO  = J3-27 PB12 (bidirectional)      SWCLK = J3-28 PB13 (push-pull)
- *   nRESET = J3-29 PY00 (open-drain emulated, board pull-up "USB_ID")      GND = J3-30
- * Pins are driven through the core-local fast GPIO (FGPIO) for speed.
+ * SWD only, on J3 header pins (see docs/pinout.md):
+ *   SWCLK  = J3-13 PB11 (SPI2_SCLK)
+ *   SWDIO  = J3-28 PB13 (SPI2_MOSI, bidirectional)
+ *   nRESET = J3-29 PY00 (open-drain emulated, board pull-up "USB_ID")      GND = J3-30 / J3-14
+ * Two backends drive these pins (src/dap/sw_dp.c): SPI2-accelerated (default) and GPIO bit-bang
+ * through the core-local fast GPIO (FGPIO), selectable at run time (IO Probe CMD_SWD_MODE).
  */
 #ifndef __DAP_CONFIG_H__
 #define __DAP_CONFIG_H__
@@ -16,6 +18,7 @@
 #include "hpm_gpio_drv.h"
 #include "hpm_gpiom_drv.h"
 #include "version.h"
+#include "sw_dp_mode.h"
 
 #ifndef __STATIC_INLINE
 #define __STATIC_INLINE static inline
@@ -41,7 +44,10 @@
 #define DAP_DEFAULT_PORT      1U       /* SWD */
 #define DAP_DEFAULT_SWJ_CLOCK 1000000U
 
-#define DAP_PACKET_SIZE  512U /* USB high-speed bulk */
+/* 1024 B is the largest safe size: DAP_Transfer counts transfers in one byte (<= 255), and
+ * OpenOCD 0.12 fills a packet with up to (size - 3) / 4 transfers. 2048 B breaks OpenOCD;
+ * 1024 B vs 512 B nearly triples SPI-mode read throughput (fewer USB round trips). */
+#define DAP_PACKET_SIZE  1024U
 #define DAP_PACKET_COUNT 8U
 
 #define SWO_UART        0
@@ -58,8 +64,8 @@
 
 #define TARGET_FIXED 0
 
-#define PIN_SWCLK  IOC_PAD_PB13
-#define PIN_SWDIO  IOC_PAD_PB12
+#define PIN_SWCLK  IOC_PAD_PB11
+#define PIN_SWDIO  IOC_PAD_PB13
 #define PIN_nRESET IOC_PAD_PY00
 #define PIN_GPIO   HPM_FGPIO
 
@@ -102,23 +108,40 @@ __STATIC_INLINE void dap_pin_to_fgpio(uint16_t pad, uint32_t pad_ctl)
 /* JTAG is not built (DAP_JTAG = 0); kept so DAP.c links if it references the setup. */
 __STATIC_INLINE void PORT_JTAG_SETUP(void) {}
 
-/* SWCLK and SWDIO driven high, nRESET released. */
-__STATIC_INLINE void PORT_SWD_SETUP(void)
+/* Bit-bang backend: SWCLK and SWDIO as FGPIO outputs, driven high. */
+__STATIC_INLINE void dap_gpio_port_setup(void)
 {
     dap_pin_to_fgpio(PIN_SWCLK, IOC_PAD_PAD_CTL_SPD_SET(3));
     dap_pin_to_fgpio(PIN_SWDIO, IOC_PAD_PAD_CTL_SPD_SET(3));
-    dap_pin_to_fgpio(PIN_nRESET, 0);
     gpio_set_pin_output_with_initial(PIN_GPIO, PIN_PORT(PIN_SWCLK), PIN_IDX(PIN_SWCLK), 1);
     gpio_set_pin_output_with_initial(PIN_GPIO, PIN_PORT(PIN_SWDIO), PIN_IDX(PIN_SWDIO), 1);
+}
+
+/* nRESET released (input; the board pull-up holds it high). Same for both backends. */
+__STATIC_INLINE void dap_nreset_setup(void)
+{
+    dap_pin_to_fgpio(PIN_nRESET, 0);
     gpio_set_pin_input(PIN_GPIO, PIN_PORT(PIN_nRESET), PIN_IDX(PIN_nRESET));
 }
 
-/* All debug pins high-impedance. */
-__STATIC_INLINE void PORT_OFF(void)
+/* All debug pins back to high-impedance GPIO inputs (also undoes the SPI pin mux). */
+__STATIC_INLINE void dap_gpio_port_off(void)
 {
+    dap_pin_to_fgpio(PIN_SWCLK, 0);
+    dap_pin_to_fgpio(PIN_SWDIO, 0);
     gpio_set_pin_input(PIN_GPIO, PIN_PORT(PIN_SWCLK), PIN_IDX(PIN_SWCLK));
     gpio_set_pin_input(PIN_GPIO, PIN_PORT(PIN_SWDIO), PIN_IDX(PIN_SWDIO));
     gpio_set_pin_input(PIN_GPIO, PIN_PORT(PIN_nRESET), PIN_IDX(PIN_nRESET));
+}
+
+__STATIC_INLINE void PORT_SWD_SETUP(void)
+{
+    swd_port_setup();
+}
+
+__STATIC_INLINE void PORT_OFF(void)
+{
+    swd_port_off();
 }
 
 __STATIC_FORCEINLINE uint32_t PIN_SWCLK_TCK_IN(void)

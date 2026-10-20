@@ -25,6 +25,7 @@ class Cmd(enum.IntEnum):
     PING = 0x01
     GET_INFO = 0x02
     RESET = 0x03
+    SWD_MODE = 0x04
 
     GPIO_CONFIG = 0x10
     GPIO_WRITE = 0x11

@@ -43,7 +43,7 @@ def test_lists_all_tools(server):
 
 def test_probe_info(server):
     r = call(server, "probe_info")
-    assert r["ok"] and r["firmware"] == "0.4.0" and r["gpio_pins"] == [11, 13, 31, 32]
+    assert r["ok"] and r["firmware"] == "0.5.0" and r["gpio_pins"] == [11, 27, 31, 32]
     assert "elapsed_ms" in r
 
 
@@ -68,10 +68,10 @@ def test_bad_hex_is_bad_arg(server):
 
 
 def test_gpio_roundtrip(server):
-    assert call(server, "gpio_config", pin=13, mode="out", initial=1)["ok"]
-    assert call(server, "gpio_read", pin=13)["level"] == 1
-    assert call(server, "gpio_write", pin=13, level=0)["ok"]
-    assert call(server, "gpio_read")["levels"]["13"] == 0
+    assert call(server, "gpio_config", pin=27, mode="out", initial=1)["ok"]
+    assert call(server, "gpio_read", pin=27)["level"] == 1
+    assert call(server, "gpio_write", pin=27, level=0)["ok"]
+    assert call(server, "gpio_read")["levels"]["27"] == 0
 
 
 def test_spi_transfer_cs_null(server, fake):

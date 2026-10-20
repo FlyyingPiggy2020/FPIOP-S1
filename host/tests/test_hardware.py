@@ -2,7 +2,7 @@
 
 Loopback tests are skipped unless the jumpers are fitted and the matching env var is set:
   IOPROBE_SPI_LOOP=1   J3-19 (MOSI) <-> J3-21 (MISO)
-  IOPROBE_GPIO_LOOP=1  J3-13 <-> J3-32
+  IOPROBE_GPIO_LOOP=1  J3-27 <-> J3-32
   IOPROBE_UART_LOOP=1  J3-8 <-> J3-10 (target UART TX -> RX)
 """
 import os
@@ -25,7 +25,7 @@ def probe():
 def test_info(probe):
     info = probe.info()
     assert info.protocol == 1
-    assert info.gpio_pins == (11, 13, 31, 32)
+    assert info.gpio_pins == (11, 27, 31, 32)
 
 
 def test_ping_max_payload(probe):
@@ -63,14 +63,14 @@ def test_spi_loopback(probe, mode):
     assert probe.spi.transfer(data, cs=0) == data
 
 
-@pytest.mark.skipif(not os.environ.get("IOPROBE_GPIO_LOOP"), reason="set IOPROBE_GPIO_LOOP=1 with J3-13<->J3-32")
+@pytest.mark.skipif(not os.environ.get("IOPROBE_GPIO_LOOP"), reason="set IOPROBE_GPIO_LOOP=1 with J3-27<->J3-32")
 def test_gpio_loopback(probe):
     probe.gpio.config(32, "in")
-    probe.gpio.config(13, "out", initial=0)
+    probe.gpio.config(27, "out", initial=0)
     assert probe.gpio.read(32) == 0
-    probe.gpio.write(13, 1)
+    probe.gpio.write(27, 1)
     assert probe.gpio.read(32) == 1
-    probe.gpio.config(13, "in", pull="down")
+    probe.gpio.config(27, "in", pull="down")
 
 
 def test_composite_ports_found():
@@ -86,3 +86,9 @@ def test_target_uart_loopback(baud):
         s.reset_input_buffer()
         s.write(data)
         assert s.read(len(data)) == data
+
+
+def test_swd_mode_switch(probe):
+    assert probe.swd_mode() in ("spi", "gpio")
+    assert probe.swd_mode("gpio") == "gpio"
+    assert probe.swd_mode("spi") == "spi"

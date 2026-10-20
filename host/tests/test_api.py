@@ -21,9 +21,9 @@ def last_payload(fake, cmd):
 
 def test_info(probe):
     info = probe.info()
-    assert info.firmware == "0.4.0"
+    assert info.firmware == "0.5.0"
     assert info.max_payload == 4096
-    assert 13 in info.gpio_pins and 27 not in info.gpio_pins
+    assert 27 in info.gpio_pins and 13 not in info.gpio_pins
 
 
 def test_ping_echo_large(probe):
@@ -60,15 +60,15 @@ def test_timeout(probe, fake):
 
 
 def test_gpio_config_encoding(probe, fake):
-    probe.gpio.config(13, "od", pull="up", initial=1)
-    assert last_payload(fake, Cmd.GPIO_CONFIG) == bytes([13, 2, 1, 1])
+    probe.gpio.config(27, "od", pull="up", initial=1)
+    assert last_payload(fake, Cmd.GPIO_CONFIG) == bytes([27, 2, 1, 1])
 
 
 def test_gpio_write_read(probe):
-    probe.gpio.config(13, "out")
-    probe.gpio.write(13, 1)
-    assert probe.gpio.read(13) == 1
-    assert probe.gpio.read_all()[13] == 1
+    probe.gpio.config(27, "out")
+    probe.gpio.write(27, 1)
+    assert probe.gpio.read(27) == 1
+    assert probe.gpio.read_all()[27] == 1
 
 
 def test_gpio_bad_pin_raises_bad_arg(probe):
@@ -79,7 +79,7 @@ def test_gpio_bad_pin_raises_bad_arg(probe):
 
 def test_gpio_rejects_unknown_mode(probe):
     with pytest.raises(ValueError):
-        probe.gpio.config(13, "output")
+        probe.gpio.config(27, "output")
 
 
 def test_i2c_scan(probe):
@@ -141,3 +141,12 @@ def test_context_manager_closes(fake):
     with Probe(fake) as p:
         p.ping()
     assert fake.closed
+
+
+def test_swd_mode(probe, fake):
+    assert probe.swd_mode() == "spi"
+    assert probe.swd_mode("gpio") == "gpio"
+    assert last_payload(fake, Cmd.SWD_MODE) == bytes([0])
+    assert probe.swd_mode() == "gpio"
+    with pytest.raises(ValueError):
+        probe.swd_mode("jtag")

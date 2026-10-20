@@ -9,7 +9,7 @@
 |---|---|---|
 | IO Probe 控制 | 第一个串口（macOS 上形如 `/dev/cu.usbmodem<位置号>2`） | 本库、命令行、MCP server，`find_probe()` 自动找到 |
 | 目标串口 | 第二个串口（`…<位置号>4`），转发 J3-8 TX / J3-10 RX | 任何串口工具；`find_target_uart()` 返回它的路径 |
-| DAPLink 调试器 | CMSIS-DAP v2（VID:PID 34B7:5301） | OpenOCD / pyOCD / probe-rs / Keil，SWD 接 J3-27/28/29/30 |
+| DAPLink 调试器 | CMSIS-DAP v2（VID:PID 34B7:5301） | OpenOCD / pyOCD / probe-rs / Keil，SWD 接 J3-13/28/29/30 |
 
 ## 安装
 
@@ -80,7 +80,7 @@ Python 路径默认是本机的 `host/.venv/bin/python`。别人使用时可以�
 
 ## DAPLink（SWD 调试器）
 
-接线：J3-27 SWDIO、J3-28 SWCLK、J3-29 nRESET、J3-30 GND，四个脚在排针上是一个 2×2 方块。目标板必须是 3.3 V。以 STM32F1 为例，用 OpenOCD 读芯片：
+接线：J3-13 SWCLK、J3-28 SWDIO、J3-29 nRESET、J3-30 GND（13 旁边的 14 也是 GND）。目标板必须是 3.3 V。以 STM32F1 为例，用 OpenOCD 读芯片：
 
 ```bash
 openocd -f interface/cmsis-dap.cfg -c "cmsis_dap_backend usb_bulk" -c "transport select swd" -f target/stm32f1x.cfg
@@ -93,3 +93,13 @@ openocd -f interface/cmsis-dap.cfg -c "cmsis_dap_backend usb_bulk" -c "transport
 ```
 
 pyOCD 用 `pyocd list` 能看到这个调试器。没接目标板时，OpenOCD 会报 `Error connecting DP: cannot read IDR`，这是正常的。
+
+SWD 有两种后端，默认用 SPI2 加速；接线长、信号不稳时可以切回 GPIO 位操作（下次调试器连接时生效）：
+
+```bash
+.venv/bin/ioprobe swd-mode          # 查看当前后端
+.venv/bin/ioprobe swd-mode gpio     # 切到位操作
+.venv/bin/ioprobe swd-mode spi      # 切回 SPI
+```
+
+SPI 模式下 OpenOCD 可以用 `adapter speed 24000` 到 `32000`（单位 kHz）；STM32G0B1 实测读 Flash 约 650–760 KiB/s。

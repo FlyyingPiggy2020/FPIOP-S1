@@ -21,7 +21,7 @@ Pins are J3 header numbers. Fixed wiring:
 - SPI master bus 0: MOSI = J3-19, MISO = J3-21, SCLK = J3-23, CS0 = J3-24, CS1 = J3-26 (CS active low).
 - GPIO: J3 11, 13, 31, 32. J3-31 has a board pull-up (reads 1 when floating).
 - Also on the same USB device (not driven through these tools): a CMSIS-DAP SWD debugger for the target
-  (SWDIO = J3-27, SWCLK = J3-28, nRESET = J3-29, GND = J3-30; use OpenOCD / pyOCD / probe-rs) and a serial port bridged to
+  (SWCLK = J3-13, SWDIO = J3-28, nRESET = J3-29, GND = J3-30; use OpenOCD / pyOCD / probe-rs) and a serial port bridged to
   the target UART (TX = J3-8, RX = J3-10). gpio_read reports the real pin level even when the pin is an output.
 Data bytes are hex strings like "9f 00 ab". I2C addresses are 7-bit integers (0x50 = 80).
 A response carries at most 4095 data bytes. Errors come back as ok=false with error="NACK" etc.;
@@ -87,7 +87,7 @@ def _fmt(data: bytes) -> str:
 
 def create_server(factory: ProbeFactory | None = None) -> MCPServer:
     session = ProbeSession(factory or Probe.open)
-    mcp = MCPServer(name="ioprobe", instructions=INSTRUCTIONS, version="0.2.1")
+    mcp = MCPServer(name="ioprobe", instructions=INSTRUCTIONS, version="0.3.0")
 
     # --- system -----------------------------------------------------------
     @mcp.tool()

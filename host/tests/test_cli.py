@@ -45,13 +45,18 @@ def test_nack_is_error_exit(fake, capsys):
 
 
 def test_gpio_config_and_read_all(fake, capsys):
-    assert cli.main(["gpio", "config", "13", "out", "--initial", "1"]) == 0
+    assert cli.main(["gpio", "config", "27", "out", "--initial", "1"]) == 0
     assert cli.main(["--json", "gpio", "read"]) == 0
     levels = json.loads(capsys.readouterr().out.splitlines()[-1])["levels"]
-    assert levels["13"] == 1
+    assert levels["27"] == 1
 
 
 def test_spi_xfer_cs_none(fake, capsys):
     assert cli.main(["--json", "spi", "xfer", "01", "02", "--cs", "none"]) == 0
     assert json.loads(capsys.readouterr().out)["rx"] == "0102"
     assert fake.requests[-1][2][:3] == bytes([0, 0xFF, 0])
+
+
+def test_swd_mode_cli(fake, capsys):
+    assert cli.main(["--json", "swd-mode", "gpio"]) == 0
+    assert json.loads(capsys.readouterr().out)["swd_mode"] == "gpio"
