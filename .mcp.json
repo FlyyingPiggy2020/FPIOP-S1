@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ioprobe": {
+      "type": "stdio",
+      "command": "${IOPROBE_PYTHON:-/Users/lxf/project/demo/HPM5301EVKLite/host/.venv/bin/python}",
+      "args": ["-m", "ioprobe_mcp"]
+    }
+  }
+}

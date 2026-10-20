@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ioprobe"
+version = "0.2.0"
+description = "Host library and CLI for the HPM5301 IO Probe (I2C / SPI / GPIO over USB)"
+requires-python = ">=3.9"
+dependencies = ["pyserial>=3.5"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=2.3,<3"]
+test = ["pytest>=7", "mcp>=2.3,<3"]
+
+[project.scripts]
+ioprobe = "ioprobe.cli:main"
+ioprobe-mcp = "ioprobe_mcp.server:main"
+
+[tool.setuptools]
+packages = ["ioprobe", "ioprobe_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["hardware: needs a connected IO Probe (run with --hardware)"]

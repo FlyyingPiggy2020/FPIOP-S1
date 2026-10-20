@@ -1,0 +1,11 @@
+# clangd can't take the GCC -march string (zb* extensions) or infer the target
+# from riscv-none-elf-gcc, so pin a plain rv32imac target and point it at newlib.
+CompileFlags:
+  Remove: [-march=*, -mabi=*]
+  Add:
+    - --target=riscv32-unknown-elf
+    - -march=rv32imac_zicsr_zifencei
+    - -mabi=ilp32
+    - -isystem/Users/lxf/sdk/toolchain/xpack-riscv-none-elf-gcc-15.2.0-1/riscv-none-elf/include
+Diagnostics:
+  UnusedIncludes: None

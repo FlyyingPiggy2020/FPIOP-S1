@@ -1,0 +1,23 @@
+# Firmware build output (cmake -B build), incl. generated IAR / SES projects
+build/
+
+# clangd index
+.cache/
+
+# Python (host/)
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editors / OS
+.DS_Store
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.json
+
+# J-Link session leftovers
+*.jlinkscript.log
+JLinkLog.txt

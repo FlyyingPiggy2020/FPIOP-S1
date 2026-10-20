@@ -1,0 +1,5 @@
+connect
+loadfile build/output/demo.elf
+r
+g
+exit

@@ -1,0 +1,10 @@
+{
+    "clangd.path": "/usr/bin/clangd",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--background-index",
+        "--header-insertion=never",
+        "--clang-tidy=false"
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled"
+}
