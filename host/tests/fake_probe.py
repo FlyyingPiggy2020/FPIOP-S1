@@ -21,7 +21,6 @@ class FakeTransport:
         self.gpio_cfg: dict[int, tuple[int, int]] = {}
         self.i2c_devices = i2c_devices if i2c_devices is not None else {}
         self.spi_cfg = None
-        self.swd_mode = 1
         self.chunk = None  # if set, read() returns at most this many bytes per call
         self.mute = False  # swallow requests without answering
         self.prefix = b""  # bytes emitted before the next response (garbage / stale frames)
@@ -51,15 +50,9 @@ class FakeTransport:
         if cmd == Cmd.PING:
             return Status.OK, p
         if cmd == Cmd.GET_INFO:
-            return Status.OK, bytes([1, 0, 5, 0]) + struct.pack("<H", 4096) + bytes([len(GPIO_PINS), *GPIO_PINS])
+            return Status.OK, bytes([1, 0, 6, 0]) + struct.pack("<H", 4096) + bytes([len(GPIO_PINS), *GPIO_PINS])
         if cmd == Cmd.RESET:
             return Status.OK, b""
-        if cmd == Cmd.SWD_MODE:
-            if len(p) > 1 or (p and p[0] > 1):
-                return Status.BAD_ARG, b""
-            if p:
-                self.swd_mode = p[0]
-            return Status.OK, bytes([self.swd_mode])
         if cmd in (Cmd.GPIO_CONFIG, Cmd.GPIO_WRITE, Cmd.GPIO_READ):
             if not p or p[0] not in self.gpio:
                 return Status.BAD_ARG, b""

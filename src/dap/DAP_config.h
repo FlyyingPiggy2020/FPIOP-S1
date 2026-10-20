@@ -6,8 +6,8 @@
  *   SWCLK  = J3-13 PB11 (SPI2_SCLK)
  *   SWDIO  = J3-28 PB13 (SPI2_MOSI, bidirectional)
  *   nRESET = J3-29 PY00 (open-drain emulated, board pull-up "USB_ID")      GND = J3-30 / J3-14
- * Two backends drive these pins (src/dap/sw_dp.c): SPI2-accelerated (default) and GPIO bit-bang
- * through the core-local fast GPIO (FGPIO), selectable at run time (IO Probe CMD_SWD_MODE).
+ * SWD is shifted by SPI2 (src/dap/sw_dp_spi.c). The PIN_* helpers below use the core-local fast
+ * GPIO (FGPIO) for nRESET and for DAP_SWJ_Pins reads; they do not carry SWD traffic.
  */
 #ifndef __DAP_CONFIG_H__
 #define __DAP_CONFIG_H__
@@ -18,7 +18,7 @@
 #include "hpm_gpio_drv.h"
 #include "hpm_gpiom_drv.h"
 #include "version.h"
-#include "sw_dp_mode.h"
+#include "sw_dp_spi.h"
 
 #ifndef __STATIC_INLINE
 #define __STATIC_INLINE static inline
@@ -33,8 +33,8 @@
 #define __NOP() __asm volatile("nop")
 #endif
 
-/* Bit-bang loop calibration, not the real core clock: DAP.c derives SWCLK delays from it.
- * 36 MHz is what CherryDAP HSLink-Lite uses on HPM5301 with FGPIO; re-measure SWCLK if pins change. */
+/* Loop calibration for DAP.c's software delays (DAP_Delay, reset timing), not the real core clock.
+ * SWCLK itself comes from the SPI divider and is unaffected. Value from CherryDAP HSLink-Lite. */
 #define CPU_CLOCK            36000000U
 #define IO_PORT_WRITE_CYCLES 1U
 
@@ -108,15 +108,6 @@ __STATIC_INLINE void dap_pin_to_fgpio(uint16_t pad, uint32_t pad_ctl)
 /* JTAG is not built (DAP_JTAG = 0); kept so DAP.c links if it references the setup. */
 __STATIC_INLINE void PORT_JTAG_SETUP(void) {}
 
-/* Bit-bang backend: SWCLK and SWDIO as FGPIO outputs, driven high. */
-__STATIC_INLINE void dap_gpio_port_setup(void)
-{
-    dap_pin_to_fgpio(PIN_SWCLK, IOC_PAD_PAD_CTL_SPD_SET(3));
-    dap_pin_to_fgpio(PIN_SWDIO, IOC_PAD_PAD_CTL_SPD_SET(3));
-    gpio_set_pin_output_with_initial(PIN_GPIO, PIN_PORT(PIN_SWCLK), PIN_IDX(PIN_SWCLK), 1);
-    gpio_set_pin_output_with_initial(PIN_GPIO, PIN_PORT(PIN_SWDIO), PIN_IDX(PIN_SWDIO), 1);
-}
-
 /* nRESET released (input; the board pull-up holds it high). Same for both backends. */
 __STATIC_INLINE void dap_nreset_setup(void)
 {
@@ -134,14 +125,16 @@ __STATIC_INLINE void dap_gpio_port_off(void)
     gpio_set_pin_input(PIN_GPIO, PIN_PORT(PIN_nRESET), PIN_IDX(PIN_nRESET));
 }
 
+/* SWCLK/SWDIO to SPI2, nRESET released. */
 __STATIC_INLINE void PORT_SWD_SETUP(void)
 {
-    swd_port_setup();
+    swd_spi_port_setup();
+    dap_nreset_setup();
 }
 
 __STATIC_INLINE void PORT_OFF(void)
 {
-    swd_port_off();
+    dap_gpio_port_off();
 }
 
 __STATIC_FORCEINLINE uint32_t PIN_SWCLK_TCK_IN(void)
@@ -172,20 +165,6 @@ __STATIC_FORCEINLINE void PIN_SWDIO_TMS_SET(void)
 __STATIC_FORCEINLINE void PIN_SWDIO_TMS_CLR(void)
 {
     PIN_GPIO->DO[PIN_PORT(PIN_SWDIO)].CLEAR = 1UL << PIN_IDX(PIN_SWDIO);
-}
-
-__STATIC_FORCEINLINE uint32_t PIN_SWDIO_IN(void)
-{
-    return (PIN_GPIO->DI[PIN_PORT(PIN_SWDIO)].VALUE >> PIN_IDX(PIN_SWDIO)) & 1UL;
-}
-
-__STATIC_FORCEINLINE void PIN_SWDIO_OUT(uint32_t bit)
-{
-    if (bit & 1U) {
-        PIN_GPIO->DO[PIN_PORT(PIN_SWDIO)].SET = 1UL << PIN_IDX(PIN_SWDIO);
-    } else {
-        PIN_GPIO->DO[PIN_PORT(PIN_SWDIO)].CLEAR = 1UL << PIN_IDX(PIN_SWDIO);
-    }
 }
 
 __STATIC_FORCEINLINE void PIN_SWDIO_OUT_ENABLE(void)

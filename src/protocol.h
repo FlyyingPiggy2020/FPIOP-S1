@@ -24,7 +24,6 @@
 #define CMD_PING        0x01 /* any bytes -> echoed back */
 #define CMD_GET_INFO    0x02 /* -> proto, fw_major, fw_minor, fw_patch, max_payload(u16), n_gpio, j3_pin[n_gpio] */
 #define CMD_RESET       0x03 /* -> ack, then chip reset */
-#define CMD_SWD_MODE    0x04 /* [mode(0 gpio bit-bang, 1 spi)] -> mode now selected; applies at next debugger connect */
 
 /* gpio: pins are addressed by their J3 header number */
 #define CMD_GPIO_CONFIG   0x10 /* pin, mode(0 in,1 out,2 open-drain), pull(0 none,1 up,2 down), initial */

@@ -87,8 +87,3 @@ def test_target_uart_loopback(baud):
         s.write(data)
         assert s.read(len(data)) == data
 
-
-def test_swd_mode_switch(probe):
-    assert probe.swd_mode() in ("spi", "gpio")
-    assert probe.swd_mode("gpio") == "gpio"
-    assert probe.swd_mode("spi") == "spi"

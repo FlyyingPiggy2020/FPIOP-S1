@@ -56,7 +56,3 @@ def test_spi_xfer_cs_none(fake, capsys):
     assert json.loads(capsys.readouterr().out)["rx"] == "0102"
     assert fake.requests[-1][2][:3] == bytes([0, 0xFF, 0])
 
-
-def test_swd_mode_cli(fake, capsys):
-    assert cli.main(["--json", "swd-mode", "gpio"]) == 0
-    assert json.loads(capsys.readouterr().out)["swd_mode"] == "gpio"

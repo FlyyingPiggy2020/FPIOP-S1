@@ -1,6 +1,6 @@
 # HPM5301 IO Probe 规格书
 
-2026-10-20 · 固件 0.5.0 · 协议 v1 · 电脑端库 ioprobe 0.3.0
+2026-10-20 · 固件 0.6.0 · 协议 v1 · 电脑端库 ioprobe 0.4.0
 
 IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收发 I2C、SPI 和 GPIO 信号，同时充当待测 MCU 的 DAPLink（SWD）调试器和串口。
 
@@ -15,7 +15,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | I2C 主机 | 1 路 | I2C2 | SDA 3，SCL 5 | 速率 100 k / 400 k / 1 MHz | 已实现 |
 | SPI 主机 | 1 路，2 个片选 | SPI1 | MOSI 19，MISO 21，SCLK 23，CS0 24，CS1 26 | 模式 0–3、频率、MSB/LSB 先发、片选保持 | 已实现 |
 | GPIO | 4 个 | GPIO0 | 11，27，31，32 | 输入 / 推挽输出 / 开漏，上拉 / 下拉 / 无 | 已实现（J3-37 不可用，已去掉） |
-| DAPLink 调试器 | 1 路 SWD | SPI2 加速（默认）/ FGPIO 位操作（备用） | SWCLK 13，SWDIO 28，nRESET 29，GND 30 | CMSIS-DAP v2；SWD 时钟由调试软件设置；后端用 `swd-mode` 切换 | 已实现，STM32G0B1 实测通过 |
+| DAPLink 调试器 | 1 路 SWD | SPI2 | SWCLK 13，SWDIO 28，nRESET 29，GND 30 | CMSIS-DAP v2；SWD 时钟由调试软件设置（推荐 8–40 MHz） | 已实现，STM32G0B1 实测通过 |
 | 目标串口 | 1 路 | UART3 | TX 8，RX 10 | 波特率 / 数据位 / 校验 / 停止位跟随电脑端 | 已实现，待回环实测 |
 | 调试串口 | 1 路 | UART0 | TX 36，RX 38 | 115200 bps，固件日志 | 保留，不对外开放 |
 | I2C 从机模拟 | 复用 I2C 主机那一路 | I2C2 | SDA 3，SCL 5 | 由命令切换主/从 | 后续 |
@@ -69,10 +69,10 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 性能 | 大数据往返 | 4095 字节回显 1176 次/s，双向合计约 9.4 MiB/s | 实测（0.4.0） |
 | 性能 | SPI 传输 | 4093 字节一帧，有效数据约 2.3 MiB/s（SCLK 设 40 MHz） | 实测（0.4.0） |
 | 性能 | I2C 全地址扫描 | 约 105 ms（0x08–0x77，空总线） | 实测 |
-| 性能 | SWD 读 Flash（STM32G0B1） | SPI 模式：8 MHz 287 KiB/s，16 MHz 492 KiB/s，24 MHz 648 KiB/s，32 MHz 763 KiB/s；位操作模式上限约 551 KiB/s（24 MHz 起连不上） | 实测（0.5.0） |
-| 性能 | SWD 编程 Flash（STM32G0B1） | 256 KB 擦除 + 编程 + 校验约 6.5 s，两种模式、各档时钟都一样：瓶颈是 G0 自身的擦写时间（约 5–6 s） | 实测（0.5.0） |
+| 性能 | SWD 读 Flash（STM32G0B1） | 8 MHz 288 KiB/s，16 MHz 494 KiB/s，24 MHz 635 KiB/s，32 MHz 765 KiB/s，40 MHz 841 KiB/s（256 KB 整片读，逐字节核对） | 实测（0.6.0） |
+| 性能 | SWD 编程 Flash（STM32G0B1） | 256 KB 擦除 + 编程 + 校验约 6.5–6.7 s，各档时钟都一样：瓶颈是 G0 自身的擦写时间（约 5–6 s） | 实测（0.6.0） |
 | 性能 | 复位后重新可用 | 约 1 s（USB 重新枚举） | 实测（0.1.0） |
-| 版本 | 固件 / 协议 / 电脑端库 | 0.5.0 / v1 / ioprobe 0.3.0 | 代码 |
+| 版本 | 固件 / 协议 / 电脑端库 | 0.6.0 / v1 / ioprobe 0.4.0 | 代码 |
 
 待确认：主频、SPI 最高 SCLK、SWD 实际 SWCLK 频率、整机功耗和尺寸尚未实测；SPI 和目标串口的数据还未用回环线验证。
 
@@ -98,8 +98,8 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | USB 链路 | usb_link.c | 复合设备描述符（DAP + 2×CDC + WinUSB），IO Probe 控制口收发（CherryUSB） | 接收环形缓冲 8 KB，缓冲满时自动流控；发送缓冲 4352 B |
 | DAP 传输 | dap_link.c | CMSIS-DAP v2 bulk 请求/回复队列 | 1024 B × 8 包 |
 | DAP 配置 | dap/DAP_config.h | SWD 引脚（J3-13/28/29）、包长、仅 SWD | 默认 1 MHz |
-| SWD 后端 | dap/sw_dp.c、sw_dp_spi.c、sw_dp_io.c | 后端切换；SPI2 加速（移植自 CherryDAP SW_DP_SPI，BSD-3）；参考位操作实现 | SPI 模式 0、LSB 先发、MOSI 双向；默认 SPI |
-| DAP 核心 | third_party/cherrydap | CMSIS-DAP 命令处理、参考 SWD 位操作（ARM / CherryDAP，Apache-2.0） | 固定在 CherryDAP 43d2b4c |
+| SWD | dap/sw_dp_spi.c | SWD 时序由 SPI2 产生（移植自 CherryDAP SW_DP_SPI，BSD-3） | SPI 模式 0、LSB 先发、MOSI 双向；跳过 23.5–25.5 MHz |
+| DAP 核心 | third_party/cherrydap | CMSIS-DAP 命令处理（ARM / CherryDAP，Apache-2.0） | 固定在 CherryDAP 43d2b4c |
 | 目标串口 | target_uart.c | CDC #2 ↔ UART3 转发 | 中断接收 + 轮询发送，各 4 KB 缓冲 |
 | 协议 | protocol.c | 帧解析、CRC 校验、命令分发 | 遇到乱码自动重新同步到下一个 0xA5 |
 | 引脚表 | pins.c | J3 编号 → 芯片脚 | 上电时全部 GPIO 设为输入 + 下拉（安全态） |
@@ -140,7 +140,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 
 小命令延迟基本由 USB 帧周期和主机调度决定，固件优化影响不大。
 
-**SPI 加速 SWD（固件 0.5.0）**
+**SPI 加速 SWD（固件 0.5.0 引入，0.6.0 起是唯一方式）**
 
 STM32G0B1 读 Flash（64 KB，OpenOCD 0.12 `dump_image`），每次都和备份逐字节比对：
 
@@ -157,7 +157,9 @@ STM32G0B1 读 Flash（64 KB，OpenOCD 0.12 `dump_image`），每次都和备份�
 - **2048 B 包不能用**：`DAP_Transfer` 的回复计数只有 1 个字节（最多 255），OpenOCD 0.12 会往一个包里塞超过 255 个传输，报 `transfer count mismatch`。
 - **编程速度不变**（约 6.5 s / 256 KB）：G0 的 Flash 擦写本身就要 5–6 s，探针再快也省不了多少；提速主要体现在读取、校验、下载到 RAM，以及 Flash 更快的目标芯片上。
 - **位操作的时钟不准**：同样设定 8 MHz，位操作比 SPI 快约一倍，说明 `CPU_CLOCK` 标定值偏低、实际 SWCLK 高于设定值。SPI 模式的时钟和设定值一致。
-- **建议**：默认 SPI 模式；接线短时可用 24–32 MHz，长杜邦线或信号不稳时降到 8–16 MHz，或用 `ioprobe swd-mode gpio` 切回位操作。
+- **0.6.0 只保留 SPI**：SPI 在高时钟下更稳（位操作 24 MHz 起连不上），位操作代码和 `swd-mode` 命令已删除。
+- **24–25 MHz 的 SWCLK 不稳定**：实际 SWCLK 正好是 24.0 或 25.0 MHz 时，10 次连接失败 8 次；23.2 MHz 和 25.7–48 MHz 都稳定。原因没查明（需要示波器），固件选分频时跳过 23.5–25.5 MHz。改完后 8–40 MHz 每档 5 次连接全部成功。
+- **建议**：OpenOCD `adapter speed` 用 8000–40000；长杜邦线或信号不稳时降到 8000–16000。
 
 
 ## 4. 功能说明
@@ -205,7 +207,6 @@ MCP server 和命令行都只是 ioprobe 库的外壳，因此 AI、脚本和人
 | 系统 | PING（0x01） | 任意字节 | 原样回显 | — |
 | 系统 | GET_INFO（0x02） | 无 | 协议版本、固件版本、最大载荷、GPIO 引脚表 | probe_info |
 | 系统 | RESET（0x03） | 无 | 先应答再复位，约 1 s 后可用 | probe_reset |
-| 系统 | SWD_MODE（0x04） | 无（查询）或 0 = 位操作 / 1 = SPI | 当前选择的 SWD 后端，下次调试器连接时生效 | —（`ioprobe swd-mode`） |
 | GPIO | GPIO_CONFIG（0x10） | 引脚、模式（输入 / 推挽 / 开漏）、上下拉、初始电平 | — | gpio_config |
 | GPIO | GPIO_WRITE（0x11） | 引脚、电平 | — | gpio_write |
 | GPIO | GPIO_READ（0x12） | 引脚 | 引脚真实电平 | gpio_read（带 pin） |

@@ -4,4 +4,4 @@ from .device import find_probe, find_target_uart, list_probes
 from .protocol import Cmd, Status
 
 __all__ = ["Probe", "ProbeError", "ProbeInfo", "ProbeTimeout", "find_probe", "find_target_uart", "list_probes", "Cmd", "Status"]
-__version__ = "0.3.0"
+__version__ = "0.4.0"

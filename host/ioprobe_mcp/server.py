@@ -87,7 +87,7 @@ def _fmt(data: bytes) -> str:
 
 def create_server(factory: ProbeFactory | None = None) -> MCPServer:
     session = ProbeSession(factory or Probe.open)
-    mcp = MCPServer(name="ioprobe", instructions=INSTRUCTIONS, version="0.3.0")
+    mcp = MCPServer(name="ioprobe", instructions=INSTRUCTIONS, version="0.4.0")
 
     # --- system -----------------------------------------------------------
     @mcp.tool()

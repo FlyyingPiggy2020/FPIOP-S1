@@ -9,9 +9,9 @@ Copied unchanged:
 |---|---|
 | Include/DAP.h | DAP/Include/DAP.h |
 | Source/DAP.c | DAP/Source/DAP.c (CMSIS-DAP command processor) |
-| Source/SW_DP.c | DAP/Source/SW_DP.c (generic GPIO bit-bang SWD) |
 | Source/DAP_vendor.c | DAP/Source/DAP_vendor.c (empty vendor-command template) |
 
 The board-specific `DAP_config.h` (pins, timing, SWD-only) lives in `src/dap/` and is ours.
-Not taken: JTAG/cJTAG, SPI-accelerated SWD, SWO, HSLink settings, CherryDAP's own dap_main.c (USB glue is in src/usb_link.c).
-To update: download the new commit, re-copy these four files, and update the hash above.
+Not taken: JTAG/cJTAG, the GPIO bit-bang SW_DP.c (removed in fw 0.6.0; SWD runs on SPI2), SWO, HSLink settings, CherryDAP's own dap_main.c (USB glue is in src/usb_link.c).
+The SPI SWD code in src/dap/sw_dp_spi.c is ported from CherryDAP projects/HSLink-Lite/SW_DP/SW_DP_SPI.c (Copyright (c) 2024 RCSN, BSD-3-Clause).
+To update: download the new commit, re-copy these three files, and update the hash above.

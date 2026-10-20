@@ -29,8 +29,6 @@ sdk_app_src(
     src/dap_link.c
     src/target_uart.c
     third_party/cherrydap/Source/DAP.c
-    src/dap/sw_dp.c
-    src/dap/sw_dp_io.c
     src/dap/sw_dp_spi.c
     third_party/cherrydap/Source/DAP_vendor.c
     src/protocol.c

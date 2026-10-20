@@ -21,7 +21,7 @@ def last_payload(fake, cmd):
 
 def test_info(probe):
     info = probe.info()
-    assert info.firmware == "0.5.0"
+    assert info.firmware == "0.6.0"
     assert info.max_payload == 4096
     assert 27 in info.gpio_pins and 13 not in info.gpio_pins
 
@@ -142,11 +142,3 @@ def test_context_manager_closes(fake):
         p.ping()
     assert fake.closed
 
-
-def test_swd_mode(probe, fake):
-    assert probe.swd_mode() == "spi"
-    assert probe.swd_mode("gpio") == "gpio"
-    assert last_payload(fake, Cmd.SWD_MODE) == bytes([0])
-    assert probe.swd_mode() == "gpio"
-    with pytest.raises(ValueError):
-        probe.swd_mode("jtag")

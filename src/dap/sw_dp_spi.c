@@ -1,5 +1,5 @@
 /*
- * SPI-accelerated SWD backend on SPI2.
+ * SWD on SPI2 (the only SWD backend since firmware 0.6.0; the GPIO bit-bang path was removed).
  *
  * SWCLK = SPI2_SCLK (PB11, J3-13); SWDIO = SPI2_MOSI (PB13, J3-28) in bidirectional-MOSI
  * (3-wire) mode, so the controller drives SWDIO in write phases and samples it in read phases
@@ -13,11 +13,19 @@
 #include "DAP.h"
 #include "hpm_clock_drv.h"
 #include "hpm_spi_drv.h"
-#include "sw_dp_mode.h"
+#include "sw_dp_spi.h"
 
 #define SWD_SPI        HPM_SPI2
 #define SWD_SPI_CLOCK  clock_spi2
 #define SPI_SRC_MAX_HZ 80000000U /* keep the SPI kernel clock in a range the IP is specified for */
+
+static uint32_t swj_clock_hz = DAP_DEFAULT_SWJ_CLOCK;
+
+/* Measured on an STM32G0B1 with ~15 cm jumper wires: SWCLK of exactly 24.0 and 25.0 MHz fails
+ * (0-1 of 5 connects) while 23.2 and 25.7-48 MHz are 5/5. Root cause not yet scoped; until then
+ * the divider search skips this band and settles below it. */
+#define SCLK_AVOID_LO_HZ 23500000U
+#define SCLK_AVOID_HI_HZ 25500000U
 
 #define FMT(nbits) (SPI_TRANSFMT_DATALEN_SET((nbits) - 1U) | SPI_TRANSFMT_MOSIBIDIR_MASK | SPI_TRANSFMT_LSB_MASK)
 
@@ -74,10 +82,11 @@ static uint32_t parity32(uint32_t v)
     return v & 1U;
 }
 
-void SPI_Set_Clock(uint32_t hz)
+static void spi_set_clock(uint32_t hz)
 {
     uint32_t best = 0, best_div = 1, best_src = 0;
 
+    clock_add_to_group(SWD_SPI_CLOCK, 0);
     if (hz == 0) {
         hz = DAP_DEFAULT_SWJ_CLOCK;
     }
@@ -96,6 +105,9 @@ void SPI_Set_Clock(uint32_t hz)
             continue;
         }
         uint32_t f = pll / div;
+        while (f > SCLK_AVOID_LO_HZ && f <= SCLK_AVOID_HI_HZ && div < 256U) {
+            f = pll / ++div;
+        }
         if (f <= hz && f > best) {
             best = f;
             best_div = div;
@@ -121,7 +133,14 @@ void SPI_Set_Clock(uint32_t hz)
     spi_master_set_sclk_div(SWD_SPI, (uint8_t)sclk_div);
 }
 
-void SPI_PORT_SWD_SETUP(void)
+/* DAP.c calls this (weak default overridden) for DAP_SWJ_Clock and at DAP_Setup(). */
+void Set_Clock_Delay(uint32_t clock)
+{
+    swj_clock_hz = clock;
+    spi_set_clock(clock);
+}
+
+void swd_spi_port_setup(void)
 {
     spi_format_config_t format = { 0 };
 
@@ -145,9 +164,10 @@ void SPI_PORT_SWD_SETUP(void)
     SWD_SPI->CTRL |= SPI_CTRL_RXFIFORST_MASK | SPI_CTRL_TXFIFORST_MASK;
     while (SWD_SPI->CTRL & (SPI_CTRL_RXFIFORST_MASK | SPI_CTRL_TXFIFORST_MASK)) {
     }
+    spi_set_clock(swj_clock_hz);
 }
 
-void SPI_SWJ_Sequence(uint32_t count, const uint8_t *data)
+void SWJ_Sequence(uint32_t count, const uint8_t *data)
 {
     while (count) {
         uint32_t n = (count > 8U) ? 8U : count;
@@ -156,7 +176,7 @@ void SPI_SWJ_Sequence(uint32_t count, const uint8_t *data)
     }
 }
 
-void SPI_SWD_Sequence(uint32_t info, const uint8_t *swdo, uint8_t *swdi)
+void SWD_Sequence(uint32_t info, const uint8_t *swdo, uint8_t *swdi)
 {
     uint32_t count = info & SWD_SEQUENCE_CLK;
 
@@ -174,7 +194,7 @@ void SPI_SWD_Sequence(uint32_t info, const uint8_t *swdo, uint8_t *swdi)
     }
 }
 
-uint8_t SPI_SWD_Transfer(uint32_t request, uint32_t *data)
+uint8_t SWD_Transfer(uint32_t request, uint32_t *data)
 {
     uint32_t trn = DAP_Data.swd_conf.turnaround;
     uint32_t ack;

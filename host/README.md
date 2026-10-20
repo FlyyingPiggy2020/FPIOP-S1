@@ -94,12 +94,4 @@ openocd -f interface/cmsis-dap.cfg -c "cmsis_dap_backend usb_bulk" -c "transport
 
 pyOCD 用 `pyocd list` 能看到这个调试器。没接目标板时，OpenOCD 会报 `Error connecting DP: cannot read IDR`，这是正常的。
 
-SWD 有两种后端，默认用 SPI2 加速；接线长、信号不稳时可以切回 GPIO 位操作（下次调试器连接时生效）：
-
-```bash
-.venv/bin/ioprobe swd-mode          # 查看当前后端
-.venv/bin/ioprobe swd-mode gpio     # 切到位操作
-.venv/bin/ioprobe swd-mode spi      # 切回 SPI
-```
-
-SPI 模式下 OpenOCD 可以用 `adapter speed 24000` 到 `32000`（单位 kHz）；STM32G0B1 实测读 Flash 约 650–760 KiB/s。
+SWD 由 SPI2 驱动，OpenOCD 的 `adapter speed`（单位 kHz）推荐 8000–40000；STM32G0B1 实测读 Flash 32 MHz 约 765 KiB/s、40 MHz 约 840 KiB/s。接线长或信号不稳时降到 8000–16000。

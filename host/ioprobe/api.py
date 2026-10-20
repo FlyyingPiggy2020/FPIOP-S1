@@ -95,19 +95,6 @@ class Probe:
         return ProbeInfo(protocol=d[0], firmware=f"{d[1]}.{d[2]}.{d[3]}",
                          max_payload=d[4] | (d[5] << 8), gpio_pins=tuple(d[7:7 + n]))
 
-    SWD_MODES = {"gpio": 0, "spi": 1}
-
-    def swd_mode(self, mode: str | None = None) -> str:
-        """Get or set the DAPLink SWD backend: "spi" (SPI2-accelerated, default) or "gpio" (bit-bang).
-
-        A change applies at the debugger's next connect (e.g. the next OpenOCD/pyOCD session).
-        """
-        if mode is not None and mode not in self.SWD_MODES:
-            raise ValueError(f"mode must be one of {list(self.SWD_MODES)}")
-        payload = b"" if mode is None else bytes([self.SWD_MODES[mode]])
-        code = self.call(Cmd.SWD_MODE, payload)[0]
-        return {v: k for k, v in self.SWD_MODES.items()}[code]
-
     def reset(self) -> None:
         """Reboot the probe. The USB port disappears for ~1 s; reopen afterwards."""
         self.call(Cmd.RESET)

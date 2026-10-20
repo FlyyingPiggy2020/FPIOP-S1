@@ -1,6 +1,6 @@
 # IO Probe 引脚表（HPM5301EVKLite J3）
 
-适用固件 **0.5.0**。来源：
+适用固件 **0.6.0**。来源：
 - 《HPM5301EVKLite 用户使用手册》第二章 J3 表
 - 板上 J3 丝印表（实物，RevB）
 - SDK 文件：`boards/hpm5301evklite/{README_en.rst,pinmux.c,board.h}`
@@ -16,7 +16,7 @@
 - I2C、SPI、串口、SWD 每种通讯接口各一路。
 - I2C、SPI、串口用片上硬件外设，位置由芯片决定。
 - SWD 用 SPI2 加速：SWCLK 必须是 SPI2 的时钟脚，J3 上只有 **J3-13**（PB11）；SWDIO 用 SPI2 的 MOSI（**J3-28**，PB13，双向模式），nRESET 和 GND 紧挨着在 **J3-29/30**。13 旁边的 14 也是 GND。
-- 0.3.0–0.4.0 用的是 J3-27/28/29/30 的 2×2 方块（纯 GPIO 位操作），0.5.0 为了 SPI 加速把 SWCLK 移到了 13。
+- 0.3.0–0.4.0 用的是 J3-27/28/29/30 的 2×2 方块（GPIO 位操作）；0.5.0 为了 SPI 加速把 SWCLK 移到 13；0.6.0 起只用 SPI，位操作已删除。
 
 ## 排针视图
 
@@ -52,7 +52,7 @@
 | I2C 主机 | SDA 3，SCL 5（3.3 V 在 1，GND 在 9） | I2C2 | 外接设备要有上拉（建议 4.7 kΩ 接 3.3 V），芯片内部上拉只够 100 kHz 调试用 |
 | SPI 主机 | MOSI 19，MISO 21，SCLK 23，CS0 24，CS1 26（GND 在 20、25） | SPI1 | 片选低电平有效，由 GPIO 软件控制，可跨多次传输保持 |
 | 目标串口 | GND 6，TX 8，RX 10 | UART3 | 电脑上是第二个 USB 串口，波特率跟随电脑端设置 |
-| DAPLink（SWD） | SWCLK 13，SWDIO 28，nRESET 29，GND 30（或 14） | SPI2（默认）/ FGPIO 位操作（备用） | CMSIS-DAP v2；`src/dap/`；`ioprobe swd-mode spi\|gpio` 切换 |
+| DAPLink（SWD） | SWCLK 13，SWDIO 28，nRESET 29，GND 30（或 14） | SPI2 | CMSIS-DAP v2；`src/dap/sw_dp_spi.c`；推荐 8–40 MHz |
 | GPIO | 11，27，31，32 | GPIO0 | 31 板上有上拉，悬空时读到 1 |
 
 **接目标板（3.3 V ARM Cortex-M）**
@@ -68,7 +68,7 @@
 
 ## J3 完整表
 
-| J3 | 芯片脚 | 手册 / 丝印 | 芯片可复用功能（不含 GPIO） | 0.5.0 分配 |
+| J3 | 芯片脚 | 手册 / 丝印 | 芯片可复用功能（不含 GPIO） | 0.6.0 分配 |
 |---|---|---|---|---|
 | 1, 17 | — | 3.3V | — | 电源 |
 | 2, 4 | — | 5.0V | — | 电源（**不要接到 IO**） |
@@ -104,7 +104,8 @@
 | 0.2.0 | 13, 27, 28, 32, 37 | SWCLK 11，SWDIO 29，nRESET 31 | 8/10 改为目标串口 |
 | 0.2.1 | 13, 27, 28, 32 | 同上 | 去掉 37（USB0_PWR） |
 | 0.3.0 / 0.4.0 | 11, 13, 31, 32 | SWDIO 27，SWCLK 28，nRESET 29，GND 30 | SWD 集中成 2×2 方块；SWDIO/SWCLK 换到更快的 PB 口 |
-| **0.5.0** | **11, 27, 31, 32** | **SWCLK 13，SWDIO 28，nRESET 29，GND 30** | SPI2 加速 SWD（SWCLK 必须在 SPI2_SCLK 脚上），保留位操作备用 |
+| 0.5.0 | 11, 27, 31, 32 | SWCLK 13，SWDIO 28，nRESET 29，GND 30 | SPI2 加速 SWD（SWCLK 必须在 SPI2_SCLK 脚上），位操作作为备用 |
+| **0.6.0** | **11, 27, 31, 32** | **同 0.5.0** | 只保留 SPI，删除位操作和 `swd-mode` 命令；跳过 23.5–25.5 MHz 的 SWCLK |
 
 ## 从机模拟（后续）
 
@@ -114,7 +115,7 @@
 
 ## SWD 实测：STM32G0B1（固件 0.3.0 时的功能测试；各版本速度见 spec.md）
 
-目标板：STM32G0B1（Cortex-M0+，256 KB 双 Bank Flash），3.3 V，当时按 J3-27/28/29/30 接 SWDIO / SWCLK / nRESET / GND（0.5.0 起 SWCLK 改到 13、SWDIO 改到 28）。工具：OpenOCD 0.12（`interface/cmsis-dap.cfg` + `cmsis_dap_backend usb_bulk` + `target/stm32g0x.cfg`）。
+目标板：STM32G0B1（Cortex-M0+，256 KB 双 Bank Flash），3.3 V，当时按 J3-27/28/29/30 接 SWDIO / SWCLK / nRESET / GND（0.5.0 起 SWCLK 改到 13、SWDIO 改到 28，并改用 SPI 驱动）。工具：OpenOCD 0.12（`interface/cmsis-dap.cfg` + `cmsis_dap_backend usb_bulk` + `target/stm32g0x.cfg`）。
 
 | 测试项 | 结果 |
 |---|---|
@@ -127,7 +128,7 @@
 | 整片写回 | 256 KB 擦除 + 编程 + 校验约 9 s，读回和备份逐字节一致；目标板恢复运行原固件 |
 
 说明：
-- 8 MHz 以上读取速率不再增加（约 160 KiB/s），瓶颈是 GPIO 位操作和 USB 往返，实际 SWCLK 低于设定值。推荐用 4–8 MHz。
+- 这是 0.3.0（GPIO 位操作、`-O0`）时的数据：8 MHz 以上读取速率不再增加（约 160 KiB/s）。现在的速度见 spec.md。
 - 第一次测试时目标一直处在复位：IO Probe 没有驱动 nRESET，NRST 线却是低电平。原因是接线错误，重新接线后正常。遇到 `halt` 超时、DHCSR 一直是 `0x02000001`、外设寄存器全读 0 的情况，先查 NRST 接线和目标板供电。
 
 ## 实测（引脚悬空）
@@ -163,5 +164,6 @@ GPIO 的 FUNC_CTL 都打开了 LOOP_BACK。所以引脚设成输出时，读到�
   用万用表蜂鸣档量 J3-7 和 J3-8 是否导通：导通就是 PB15（不能另作他用），不导通就按 PA02 处理。确认之前先不分配。
 - **PY00（29）当 nRESET**：SDK 的 `init_usb_pins()` 会把它设成 USB0_ID，`DAP_Setup()` 在 USB 初始化之后改回 GPIO。
   在 STM32G0B1 上复位实测正常（见上方 SWD 实测）。
-- **SWD 实际时钟**：SPI 模式的 SWCLK 由 SPI 分频产生，应和设定值一致；位操作模式下实测吞吐表明实际时钟高于设定值（1 MHz 设定时比 SPI 模式快约一倍），没用示波器量过。
+- **SWD 实际时钟**：SWCLK 由 SPI 分频产生，取不超过设定值的最近一档（PLL 输出 / 整数分频）。没用示波器量过。
+- **24–25 MHz 的 SWCLK 不稳定（原因未查明）**：在 STM32G0B1、约 15 cm 杜邦线下，实际 SWCLK 正好是 24.0 MHz 或 25.0 MHz 时连接几乎都失败（0–1/5），而 23.2 MHz 和 25.7–48 MHz 都是 5/5。固件现在选分频时跳过 23.5–25.5 MHz，落到它下面最近的一档。要查清原因需要示波器看 SWCLK/SWDIO 波形。
 - **I2C 上拉**：板上 3/5 脚有没有焊上拉电阻，原理图摘录里看不出来，需要用万用表量一下（量对 3.3 V 的电阻）。

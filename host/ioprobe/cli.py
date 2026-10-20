@@ -42,8 +42,6 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("ping", help="round-trip check")
     p.add_argument("data", nargs="*", default=[], help="hex bytes to echo")
     sub.add_parser("reset", help="reboot the probe")
-    p = sub.add_parser("swd-mode", help="get/set the DAPLink SWD backend (applies at next debugger connect)")
-    p.add_argument("mode", nargs="?", choices=["spi", "gpio"])
 
     gpio = sub.add_parser("gpio", help="GPIO on J3 pins").add_subparsers(dest="op", required=True)
     p = gpio.add_parser("config")
@@ -98,8 +96,6 @@ def run(args: argparse.Namespace, probe: Probe):
     if c == "reset":
         probe.reset()
         return {}
-    if c == "swd-mode":
-        return {"swd_mode": probe.swd_mode(args.mode)}
     if c == "gpio":
         if args.op == "config":
             probe.gpio.config(args.pin, args.mode, args.pull, args.initial)
