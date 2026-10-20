@@ -4,7 +4,7 @@
 
 IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收发 I2C、SPI 和 GPIO 信号，同时充当待测 MCU 的 DAPLink（SWD）调试器和串口。
 
-在线协作版本：[Claude Docs 规格书](https://claude.ai/code/artifact/8a539ee3-7bf5-4c6e-9dc7-dcd737f66496)。引脚细节见 [pinout.md](pinout.md)。
+在线协作版本：[Claude Docs 规格书](https://claude.ai/code/artifact/8a539ee3-7bf5-4c6e-9dc7-dcd737f66496)。引脚细节见 [pinout.md](pinout.md)；待测试项目和已知问题见 [quality.md](quality.md)。
 
 ## 1. 功能配置
 
