@@ -3,12 +3,12 @@
 通过 USB 驱动 HPM5301 IO Probe 固件，可以操作 I2C、SPI 和 GPIO。
 协议定义在 `ioprobe/protocol.py`，必须和固件里的 `src/protocol.h` 保持一致。引脚分配见 `../docs/pinout.md`。
 
-从固件 0.2.0 起，同一根 USB 线上有三个功能：
+从固件 0.2.0 起，同一根 USB 线上有三个功能（0.4.0 起序列号由芯片 UUID 生成，库按序列号把两个串口归到同一块板）：
 
 | 功能 | 电脑上看到的 | 怎么用 |
 |---|---|---|
-| IO Probe 控制 | 第一个串口（macOS 上是 `/dev/cu.usbmodemIOPROBE_00012`） | 本库、命令行、MCP server，`find_probe()` 自动找到 |
-| 目标串口 | 第二个串口（`…00014`），转发 J3-8 TX / J3-10 RX | 任何串口工具；`find_target_uart()` 返回它的路径 |
+| IO Probe 控制 | 第一个串口（macOS 上形如 `/dev/cu.usbmodem<位置号>2`） | 本库、命令行、MCP server，`find_probe()` 自动找到 |
+| 目标串口 | 第二个串口（`…<位置号>4`），转发 J3-8 TX / J3-10 RX | 任何串口工具；`find_target_uart()` 返回它的路径 |
 | DAPLink 调试器 | CMSIS-DAP v2（VID:PID 34B7:5301） | OpenOCD / pyOCD / probe-rs / Keil，SWD 接 J3-27/28/29/30 |
 
 ## 安装

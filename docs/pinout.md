@@ -110,7 +110,7 @@
 - I2C 从机：I2C2（3/5）由命令切换为从机，芯片支持主/从。
 - SPI 从机：SPI1（19/21/23/24）由命令切换为从机。
 
-## SWD 实测：STM32G0B1（固件 0.3.0）
+## SWD 实测：STM32G0B1（固件 0.3.0；0.4.0 的速度见 spec.md）
 
 目标板：STM32G0B1（Cortex-M0+，256 KB 双 Bank Flash），3.3 V，按上面的 2×2 方块接 SWDIO / SWCLK / nRESET / GND。工具：OpenOCD 0.12（`interface/cmsis-dap.cfg` + `cmsis_dap_backend usb_bulk` + `target/stm32g0x.cfg`）。
 

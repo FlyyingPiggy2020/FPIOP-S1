@@ -7,6 +7,7 @@ crc16 = CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) over cmd..payload.
 """
 from __future__ import annotations
 
+import binascii
 import enum
 import struct
 from dataclasses import dataclass
@@ -58,12 +59,9 @@ SPI_FLAG_KEEP_CS = 0x01
 
 
 def crc16(data: bytes) -> int:
-    crc = 0xFFFF
-    for b in data:
-        crc ^= b << 8
-        for _ in range(8):
-            crc = ((crc << 1) ^ 0x1021) & 0xFFFF if crc & 0x8000 else (crc << 1) & 0xFFFF
-    return crc
+    # binascii.crc_hqx is CRC-16 poly 0x1021, MSB first, no final XOR: with init 0xFFFF that is
+    # CRC-16/CCITT-FALSE, computed in C (the pure-Python loop cost ~10 ms per 4 KB round trip).
+    return binascii.crc_hqx(data, 0xFFFF)
 
 
 def encode_request(cmd: int, seq: int, payload: bytes = b"") -> bytes:

@@ -1,6 +1,6 @@
 # HPM5301 IO Probe 规格书
 
-2026-10-20 · 固件 0.3.0 · 协议 v1 · 电脑端库 ioprobe 0.2.0
+2026-10-20 · 固件 0.4.0 · 协议 v1 · 电脑端库 ioprobe 0.2.1
 
 IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收发 I2C、SPI 和 GPIO 信号，同时充当待测 MCU 的 DAPLink（SWD）调试器和串口。
 
@@ -46,7 +46,7 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 
 ## 2. 整机参数
 
-整机由 USB Type-C 供电并通信，电脑端免驱动。小命令往返约 0.2 ms，一次最多传 4096 字节。
+整机由 USB Type-C 供电并通信，电脑端免驱动。小命令往返约 0.09 ms，大块数据往返约 9 MiB/s，一次最多传 4096 字节。
 
 | 类别 | 参数 | 数值 | 来源 |
 | --- | --- | --- | --- |
@@ -54,9 +54,9 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 主控 | 芯片 | 先楫 HPM5301（HPM5301xEGx），32 位 RISC-V | SDK |
 | 主控 | 存储 | Flash 1 MB；ILM 128 KB，DLM 127 KB，AHB SRAM 32 KB | 链接脚本 |
 | 通信 | 与电脑的接口 | USB 2.0 高速 480 Mbit/s，复合设备：CMSIS-DAP v2 + 2 个 CDC-ACM 虚拟串口 | 实测（macOS） |
-| 通信 | USB 标识 | VID 0x34B7，PID 0x5301，产品名 “IO Probe CMSIS-DAP”，序列号 IOPROBE-0001 | 固件 |
+| 通信 | USB 标识 | VID 0x34B7，PID 0x5301，产品名 “IO Probe CMSIS-DAP”，序列号 “IOPROBE-” + 16 位十六进制（由芯片 OTP UUID 生成，每块板不同） | 固件 |
 | 通信 | 驱动 | macOS / Linux 免驱；Windows 通过 WinUSB（MS OS 2.0 描述符）免驱 | 实测 macOS；Windows 未测 |
-| 调试器 | 协议 | CMSIS-DAP v2.1（固件报告 2.1.1），仅 SWD，包长 512 B × 4 | OpenOCD 0.12 实测识别 |
+| 调试器 | 协议 | CMSIS-DAP v2.1（固件报告 2.1.1），仅 SWD，包长 512 B × 8 | OpenOCD 0.12 实测识别 |
 | 调试器 | 支持的软件 | OpenOCD、pyOCD、probe-rs、Keil 等支持 CMSIS-DAP v2 的工具 | 协议标准 |
 | 目标串口 | 参数 | 波特率 / 数据位 7–8 / 奇偶校验 / 停止位 1–2，跟随电脑端设置；收发各 4 KB 缓冲 | 固件 |
 | 电气 | 供电 | USB Type-C 5 V（≤ 5.5 V），J1 或 J2 | 用户手册 |
@@ -64,13 +64,14 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 电气 | IO 电平 | 3.3 V，无电平转换、无保护；不得接 5 V 信号，待测设备必须共地 | 芯片规格 |
 | 协议 | 帧格式 | SOF(0xA5) · cmd · seq · len(16 位) · payload · CRC-16/CCITT-FALSE | src/protocol.h |
 | 协议 | 单帧容量 | 请求数据 ≤ 4096 字节；回复数据 ≤ 4095 字节（另有 1 字节状态码） | 实测 |
-| 性能 | 小命令往返 | 约 0.2–0.3 ms（GPIO、配置类命令） | 实测 |
-| 性能 | 大数据往返 | 4000 字节回显约 10 ms | 实测（0.1.0） |
+| 性能 | 小命令往返 | 中位数约 86 µs，p95 约 96 µs（gpio_read） | 实测（0.4.0） |
+| 性能 | 大数据往返 | 4095 字节回显 1176 次/s，双向合计约 9.4 MiB/s | 实测（0.4.0） |
+| 性能 | SPI 传输 | 4093 字节一帧，有效数据约 2.3 MiB/s（SCLK 设 40 MHz） | 实测（0.4.0） |
 | 性能 | I2C 全地址扫描 | 约 105 ms（0x08–0x77，空总线） | 实测 |
-| 性能 | SWD 读 Flash（STM32G0B1） | 1 MHz 84 KiB/s，4 MHz 134 KiB/s，8 MHz 160 KiB/s；8 MHz 以上不再提升 | 实测 |
-| 性能 | SWD 编程 Flash（STM32G0B1） | 256 KB 擦除 + 编程 + 校验约 9 s（8 MHz） | 实测 |
+| 性能 | SWD 读 Flash（STM32G0B1） | 1 MHz 107 KiB/s，4 MHz 242 KiB/s，8 MHz 261 KiB/s；8 MHz 以上不再提升 | 实测（0.4.0） |
+| 性能 | SWD 编程 Flash（STM32G0B1） | 256 KB 擦除 + 编程 + 校验约 6.5 s（8 MHz）；G0 自身的擦写时间约 5–6 s | 实测（0.4.0） |
 | 性能 | 复位后重新可用 | 约 1 s（USB 重新枚举） | 实测（0.1.0） |
-| 版本 | 固件 / 协议 / 电脑端库 | 0.3.0 / v1 / ioprobe 0.2.0 | 代码 |
+| 版本 | 固件 / 协议 / 电脑端库 | 0.4.0 / v1 / ioprobe 0.2.1 | 代码 |
 
 待确认：主频、SPI 最高 SCLK、SWD 实际 SWCLK 频率、整机功耗和尺寸尚未实测；SPI 和目标串口的数据还未用回环线验证。
 
@@ -89,12 +90,12 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 按键 | SW1 RESET；SW2 KEY&BOOT | 按住 KEY 再复位进入 ISP | 复位 / 进入烧录模式 |
 | 指示灯 | LED（PA10） | 低电平点亮 | 心跳，每 500 ms 翻转一次 |
 
-**固件模块**（工程 `src/`，占用 Flash 约 108 KB）
+**固件模块**（工程 `src/`，`-O3` 编译，占用 Flash 约 90 KB）
 
 | 模块 | 文件 | 职责 | 关键参数 |
 | --- | --- | --- | --- |
 | USB 链路 | usb_link.c | 复合设备描述符（DAP + 2×CDC + WinUSB），IO Probe 控制口收发（CherryUSB） | 接收环形缓冲 8 KB，缓冲满时自动流控；发送缓冲 4352 B |
-| DAP 传输 | dap_link.c | CMSIS-DAP v2 bulk 请求/回复队列 | 512 B × 4 包 |
+| DAP 传输 | dap_link.c | CMSIS-DAP v2 bulk 请求/回复队列 | 512 B × 8 包 |
 | DAP 配置 | dap/DAP_config.h | SWD 引脚（J3-27/28/29）、时序、仅 SWD | FGPIO 位操作，默认 1 MHz |
 | DAP 核心 | third_party/cherrydap | CMSIS-DAP 命令处理、SWD 时序（ARM / CherryDAP，Apache-2.0） | 固定在 CherryDAP 43d2b4c |
 | 目标串口 | target_uart.c | CDC #2 ↔ UART3 转发 | 中断接收 + 轮询发送，各 4 KB 缓冲 |
@@ -113,6 +114,29 @@ IO Probe 基于 HPM5301EVKLite 开发板，用一根 USB 线让电脑和 AI 收�
 | 命令行 | `ioprobe` | 人工调试；加 `--json` 输出机器可读结果 | 同上 |
 | MCP server | `ioprobe-mcp`（在 `.mcp.json` 中注册） | 让 AI 直接调用 13 个工具 | mcp 2.3.x |
 | 测试 | pytest | 64 个离线测试，另有硬件测试（`--hardware`） | pytest ≥ 7 |
+
+**性能优化记录（固件 0.4.0）**
+
+同一块板、同一台 Mac 上实测，三列分别是：优化前、只改成 `-O3`、加上全部改动。
+
+| 指标 | 0.3.0（-O0） | 只改 -O3 | 0.4.0 |
+| --- | --- | --- | --- |
+| 小命令往返（中位数） | 90 µs | 86 µs | 86 µs |
+| 64 B 回显 | 4222 次/s | 5338 次/s | 11079 次/s |
+| 512 B 回显（双向） | 658 KiB/s | 1079 KiB/s | 5520 KiB/s |
+| 4095 B 回显（双向） | 802 KiB/s | 1685 KiB/s | 9407 KiB/s |
+| SPI 4093 B（有效数据） | 318 KiB/s | 725 KiB/s | 2348 KiB/s |
+| SWD 读 Flash（8 MHz） | 160 KiB/s | 260 KiB/s | 261 KiB/s |
+| SWD 编程 256 KB + 校验 | 约 9 s | 约 7 s | 约 6.5 s |
+
+改动内容：
+- **默认 `-O3`**：SDK 把 `CMAKE_BUILD_TYPE=flash_xip` 当成 debug（`-O0`）编译。现在 `CMakeLists.txt` 默认 `HPM_BUILD_TYPE=flash_xip` 加 `CMAKE_BUILD_TYPE=release`；调试时加 `-DCMAKE_BUILD_TYPE=debug`。
+- **固件数据通路**：CRC-16 改为查表；环形缓冲和帧接收改用 `memcpy`，不再逐字节处理。
+- **电脑端 CRC**：改用 C 实现的 `binascii.crc_hqx`。原来的纯 Python 逐位计算，每次 4 KB 往返要多花约 10 ms，是大块传输的主要瓶颈。
+- **USB 序列号**：由芯片 OTP UUID 生成，多块 probe 同时接也不会冲突。
+- **DAP 包队列**：从 4 个加到 8 个。
+
+小命令延迟基本由 USB 帧周期和主机调度决定，固件优化影响不大。SWD 速度现在受限于 GPIO 位操作，再往上要靠 SPI 加速 SWD。
 
 ## 4. 功能说明
 

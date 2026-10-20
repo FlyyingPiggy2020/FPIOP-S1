@@ -30,6 +30,26 @@ static uint32_t ring_free(const ring_t *r)
     return RING_SIZE - ring_used(r);
 }
 
+static void ring_put(ring_t *r, const uint8_t *src, uint32_t n)
+{
+    uint32_t off = r->head & (RING_SIZE - 1);
+    uint32_t first = (n < RING_SIZE - off) ? n : RING_SIZE - off;
+
+    memcpy(&r->buf[off], src, first);
+    memcpy(r->buf, src + first, n - first);
+    r->head += n;
+}
+
+static void ring_get(ring_t *r, uint8_t *dst, uint32_t n)
+{
+    uint32_t off = r->tail & (RING_SIZE - 1);
+    uint32_t first = (n < RING_SIZE - off) ? n : RING_SIZE - off;
+
+    memcpy(dst, &r->buf[off], first);
+    memcpy(dst + first, r->buf, n - first);
+    r->tail += n;
+}
+
 static ring_t uart_rx; /* UART ISR -> USB IN */
 static ring_t usb_rx;  /* USB OUT -> UART TX */
 
@@ -85,10 +105,7 @@ static void uart_bulk_out(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
     (void)busid;
     (void)ep;
-    for (uint32_t i = 0; i < nbytes; i++) {
-        usb_rx.buf[(usb_rx.head + i) & (RING_SIZE - 1)] = ep_out_buf[i];
-    }
-    usb_rx.head += nbytes;
+    ring_put(&usb_rx, ep_out_buf, nbytes);
     if (ring_free(&usb_rx) >= PKT_SIZE) {
         arm_out();
     } else {
@@ -171,10 +188,7 @@ void target_uart_handle(void)
         if (n > PKT_SIZE) {
             n = PKT_SIZE;
         }
-        for (uint32_t i = 0; i < n; i++) {
-            ep_in_buf[i] = uart_rx.buf[(uart_rx.tail + i) & (RING_SIZE - 1)];
-        }
-        uart_rx.tail += n;
+        ring_get(&uart_rx, ep_in_buf, n);
         in_busy = true;
         usbd_ep_start_write(0, UART_IN_EP, ep_in_buf, n);
     }

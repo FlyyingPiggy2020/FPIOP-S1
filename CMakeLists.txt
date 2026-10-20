@@ -6,6 +6,15 @@ set(CONFIG_CHERRYUSB 1)
 set(CONFIG_USB_DEVICE 1)
 set(CONFIG_USB_DEVICE_CDC_ACM 1)
 
+# Default to an optimized XIP build: the SDK maps "flash_xip" alone to a debug (-O0) build,
+# which halves USB and SWD throughput. Override with -DCMAKE_BUILD_TYPE=debug for debugging.
+if(NOT HPM_BUILD_TYPE AND (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES "^(debug|release)$"))
+    set(HPM_BUILD_TYPE flash_xip)
+endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE release)
+endif()
+
 find_package(hpm-sdk REQUIRED HINTS $ENV{HPM_SDK_BASE})
 
 project(ioprobe)

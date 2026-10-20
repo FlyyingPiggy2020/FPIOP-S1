@@ -42,7 +42,7 @@
 #define DAP_DEFAULT_SWJ_CLOCK 1000000U
 
 #define DAP_PACKET_SIZE  512U /* USB high-speed bulk */
-#define DAP_PACKET_COUNT 4U
+#define DAP_PACKET_COUNT 8U
 
 #define SWO_UART        0
 #define SWO_MANCHESTER  0

@@ -50,7 +50,7 @@ class FakeTransport:
         if cmd == Cmd.PING:
             return Status.OK, p
         if cmd == Cmd.GET_INFO:
-            return Status.OK, bytes([1, 0, 3, 0]) + struct.pack("<H", 4096) + bytes([len(GPIO_PINS), *GPIO_PINS])
+            return Status.OK, bytes([1, 0, 4, 0]) + struct.pack("<H", 4096) + bytes([len(GPIO_PINS), *GPIO_PINS])
         if cmd == Cmd.RESET:
             return Status.OK, b""
         if cmd in (Cmd.GPIO_CONFIG, Cmd.GPIO_WRITE, Cmd.GPIO_READ):

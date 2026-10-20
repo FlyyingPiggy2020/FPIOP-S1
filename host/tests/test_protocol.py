@@ -4,6 +4,22 @@ from ioprobe.protocol import (MAX_PAYLOAD, SOF, FrameParser, crc16, encode_reque
                               encode_response)
 
 
+def _crc16_reference(data: bytes) -> int:
+    crc = 0xFFFF
+    for b in data:
+        crc ^= b << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x1021) & 0xFFFF if crc & 0x8000 else (crc << 1) & 0xFFFF
+    return crc
+
+
+def test_crc16_matches_bitwise_reference():
+    import os
+    for n in (0, 1, 7, 255, 4096):
+        data = os.urandom(n)
+        assert crc16(data) == _crc16_reference(data)
+
+
 def test_crc16_ccitt_false_check_value():
     # Standard check value for CRC-16/CCITT-FALSE
     assert crc16(b"123456789") == 0x29B1

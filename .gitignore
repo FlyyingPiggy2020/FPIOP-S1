@@ -21,3 +21,6 @@ __pycache__/
 # J-Link session leftovers
 *.jlinkscript.log
 JLinkLog.txt
+
+# Local firmware backups of target boards (not source)
+backups/

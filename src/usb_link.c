@@ -7,8 +7,11 @@
  *
  * Descriptors follow SDK samples/cherryusb cdc_acm_vcom and middleware/cherryusb/platform/daplink.
  */
+#include <stdio.h>
 #include <string.h>
 #include "board.h"
+#include "hpm_otp_drv.h"
+#include "hpm_otp_table.h"
 #include "usbd_core.h"
 #include "usbd_cdc_acm.h"
 #include "usb_link.h"
@@ -109,11 +112,30 @@ static const uint8_t device_quality_descriptor[] = {
     USB_DEVICE_QUALIFIER_DESCRIPTOR_INIT(USB_2_1, 0xEF, 0x02, 0x01, 0x01),
 };
 
+/* "IOPROBE-" + 16 hex digits folded from the chip's 128-bit OTP UUID, so several probes can coexist. */
+static char serial_number[8 + 16 + 1] = "IOPROBE-0000000000000000";
+
+static void make_serial_number(void)
+{
+    uint32_t w[4];
+
+    for (int i = 0; i < 4; i++) {
+        w[i] = otp_read_from_shadow(OTP_TABLE_UUID_OFFSET + i);
+    }
+    if ((w[0] | w[1] | w[2] | w[3]) == 0) { /* UUID not programmed: fall back to the die trace words */
+        for (int i = 0; i < 4; i++) {
+            w[i] = otp_read_from_shadow(OTP_TABLE_DIE_TRACE_OFFSET + i);
+        }
+    }
+    snprintf(serial_number, sizeof(serial_number), "IOPROBE-%08lX%08lX",
+             (unsigned long)(w[0] ^ w[2]), (unsigned long)(w[1] ^ w[3]));
+}
+
 static const char *string_descriptors[] = {
     (const char[]){ 0x09, 0x04 }, /* Langid */
     "HPMicro",                    /* Manufacturer */
     "IO Probe CMSIS-DAP",         /* Product: debuggers look for "CMSIS-DAP"; the host lib matches VID:PID */
-    "IOPROBE-0001",               /* Serial Number */
+    serial_number,                /* Serial Number */
     "CMSIS-DAP v2",               /* DAP interface */
     "IO Probe Control",           /* CDC #1 */
     "IO Probe Target UART",       /* CDC #2 */
@@ -181,6 +203,25 @@ static void arm_out(void)
     usbd_ep_start_read(0, CTRL_OUT_EP, ep_out_buf, usbd_get_ep_mps(0, CTRL_OUT_EP));
 }
 
+/* Ring <-> linear copies in at most two memcpy calls (the ring may wrap once). */
+static void ring_put(uint8_t *ring, uint32_t size, uint32_t pos, const uint8_t *src, uint32_t n)
+{
+    uint32_t off = pos & (size - 1);
+    uint32_t first = (n < size - off) ? n : size - off;
+
+    memcpy(&ring[off], src, first);
+    memcpy(ring, src + first, n - first);
+}
+
+static void ring_get(const uint8_t *ring, uint32_t size, uint32_t pos, uint8_t *dst, uint32_t n)
+{
+    uint32_t off = pos & (size - 1);
+    uint32_t first = (n < size - off) ? n : size - off;
+
+    memcpy(dst, &ring[off], first);
+    memcpy(dst + first, ring, n - first);
+}
+
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     (void)busid;
@@ -209,9 +250,7 @@ static void ctrl_bulk_out(uint8_t busid, uint8_t ep, uint32_t nbytes)
 {
     (void)busid;
     (void)ep;
-    for (uint32_t i = 0; i < nbytes; i++) {
-        rx_ring[(rx_head + i) & (RX_RING_SIZE - 1)] = ep_out_buf[i];
-    }
+    ring_put(rx_ring, RX_RING_SIZE, rx_head, ep_out_buf, nbytes);
     rx_head += nbytes;
 
     if (rx_free() >= sizeof(ep_out_buf)) {
@@ -240,6 +279,7 @@ static struct usbd_interface uart_intf1;
 
 void usb_link_init(void)
 {
+    make_serial_number();
     board_init_usb((USB_Type *)CONFIG_HPM_USBD_BASE);
     intc_set_irq_priority(CONFIG_HPM_USBD_IRQn, 2);
 
@@ -267,9 +307,7 @@ uint32_t usb_link_read(uint8_t *buf, uint32_t max)
     uint32_t avail = rx_head - rx_tail;
     uint32_t n = (avail < max) ? avail : max;
 
-    for (uint32_t i = 0; i < n; i++) {
-        buf[i] = rx_ring[(rx_tail + i) & (RX_RING_SIZE - 1)];
-    }
+    ring_get(rx_ring, RX_RING_SIZE, rx_tail, buf, n);
     rx_tail += n;
 
     if (rx_paused && rx_free() >= sizeof(ep_out_buf)) {
