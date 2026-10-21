@@ -102,3 +102,10 @@ def test_not_connected_when_no_probe():
 
     r = call(create_server(factory), "i2c_scan")
     assert r["ok"] is False and r["error"] == "NOT_CONNECTED"
+
+
+def test_instructions_list_the_real_gpio_pins():
+    # The server text is what the AI reads for wiring; keep it in step with the firmware's GPIO table.
+    from fake_probe import GPIO_PINS
+    from ioprobe_mcp.server import INSTRUCTIONS
+    assert "GPIO: J3 " + ", ".join(str(p) for p in GPIO_PINS) + "." in INSTRUCTIONS

@@ -19,7 +19,7 @@ Hardware probe on an HPM5301EVKLite board. All IO is 3.3 V; the target must shar
 Pins are J3 header numbers. Fixed wiring:
 - I2C master bus 0: SDA = J3-3, SCL = J3-5 (targets need pull-ups, ~4.7k to 3.3 V).
 - SPI master bus 0: MOSI = J3-19, MISO = J3-21, SCLK = J3-23, CS0 = J3-24, CS1 = J3-26 (CS active low).
-- GPIO: J3 11, 13, 31, 32. J3-31 has a board pull-up (reads 1 when floating).
+- GPIO: J3 11, 27, 31, 32. J3-31 has a board pull-up (reads 1 when floating).
 - Also on the same USB device (not driven through these tools): a CMSIS-DAP SWD debugger for the target
   (SWCLK = J3-13, SWDIO = J3-28, nRESET = J3-29, GND = J3-30; use OpenOCD / pyOCD / probe-rs) and a serial port bridged to
   the target UART (TX = J3-8, RX = J3-10). gpio_read reports the real pin level even when the pin is an output.
